@@ -1,0 +1,60 @@
+3.5.25 | Grok
+Troubleshooting Guide: Specific Issue with gptpat.com (Route 53 and WorkMail)
+
+Overview
+This guide recaps the troubleshooting process for resolving a DNS configuration issue with the domain gptpat.com after transferring it from GoDaddy to AWS Route 53. The domain worked with Amazon Lightsail but not with Amazon WorkMail due to a nameserver mismatch between the registered domain and the hosted zone.
+
+Problem
+Symptoms: Domain gptpat.com resolved correctly for Lightsail but failed to work with WorkMail.
+Root Cause: The nameservers listed under "Registered domains" in Route 53 (ns-1060.awsdns-04.org, etc.) did not match the nameservers in the hosted zone for gptpat.com (ns-318.awsdns-39.com, etc.), breaking DNS authority for WorkMail records.
+
+Steps Taken
+Identified Nameserver Mismatch:
+Registered domain nameservers:
+ns-1060.awsdns-04.org
+ns-338.awsdns-42.com
+ns-1662.awsdns-15.co.uk
+ns-819.awsdns-38.net
+Hosted zone nameservers:
+ns-318.awsdns-39.com
+ns-913.awsdns-50.net
+ns-2044.awsdns-63.co.uk
+ns-1366.awsdns-42.org
+
+Conclusion: The registered domain wasn’t pointing to the hosted zone managing DNS records.
+
+Updated Nameservers:
+In Route 53 "Registered domains," changed the nameservers for gptpat.com to match the hosted zone’s:
+ns-318.awsdns-39.com
+ns-913.awsdns-50.net
+ns-2044.awsdns-63.co.uk
+ns-1366.awsdns-42.org
+This aligned the domain’s authority with the hosted zone containing DNS records.
+
+Verified Hosted Zone Records:
+Checked the hosted zone for gptpat.com (using ns-318, etc.) for:
+A/ALIAS record for Lightsail (ensuring it persists post-fix).
+Missing WorkMail records (MX, TXT, CNAME).
+
+Added WorkMail DNS Records:
+In the hosted zone, added:
+MX: 0 gptpat-com.mail.protection.outlook.com
+TXT: v=spf1 include:amazonses.com ~all
+CNAME: autodiscover.gptpat.com → autodiscover.mail.us-east-1.awsapps.com (region-specific).
+Removed any conflicting GoDaddy-era records if present.
+
+Tested Propagation:
+Used nslookup -type=NS gptpat.com to confirm new nameservers propagated.
+Used nslookup -type=MX gptpat.com to verify WorkMail MX records.
+
+Validated WorkMail:
+In WorkMail console, verified gptpat.com domain status changed to "Verified" after DNS updates.
+Tested email functionality via WorkMail web client.
+
+Resolution
+Updated the registered domain’s nameservers to match the hosted zone, ensuring Route 53 had full authority over gptpat.com.
+Added WorkMail-specific DNS records and confirmed propagation, resolving the email issue.
+
+Notes
+Propagation may take 1-48 hours; monitor with nslookup or mxtoolbox.com.
+If Lightsail stops working post-fix, re-add its A/ALIAS record to the hosted zone.
